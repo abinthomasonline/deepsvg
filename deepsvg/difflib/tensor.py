@@ -189,6 +189,7 @@ class SVGTensor:
         return data
 
     def sample_points(self, n=10):
+        """Sample n points per path (line or curve)."""
         device = self.commands.device
 
         z = torch.linspace(0, 1, n, device=device)

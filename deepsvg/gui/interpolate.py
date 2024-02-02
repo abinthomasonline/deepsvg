@@ -15,7 +15,11 @@ from .state.project import DeepSVGProject, Frame
 from .utils import easein_easeout
 
 
-device = torch.device("cuda:0"if torch.cuda.is_available() else "cpu")
+device = torch.device(
+    "cuda:0" if torch.cuda.is_available() else 
+    "mps" if torch.backends.mps.is_available() else
+    "cpu"
+)
 pretrained_path = "./pretrained/hierarchical_ordered.pth.tar"
 
 cfg = Config()

@@ -36,7 +36,7 @@ def svg_emd_loss(p_pred, p_target,
     p_target_sub = p_target[matching]
 
     # EMD
-    i = np.argmin([torch.norm(p_pred - reorder(p_target_sub, i), dim=-1).mean() for i in range(n)])
+    i = np.argmin([torch.norm(p_pred - reorder(p_target_sub, i), dim=-1).mean().detach().numpy() for i in range(n)])
 
     losses = torch.norm(p_pred - reorder(p_target_sub, i), dim=-1)
 

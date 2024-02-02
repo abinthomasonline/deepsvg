@@ -121,8 +121,12 @@ class SVG:
         svg_dom = expatbuilder.parseString(svg_str, False)
         svg_root = svg_dom.getElementsByTagName('svg')[0]
 
-        viewbox_list = list(map(float, svg_root.getAttribute("viewBox").split(" ")))
-        view_box = Bbox(*viewbox_list)
+        view_box_attr = svg_root.getAttribute("viewBox")
+        if view_box_attr:
+            viewbox_list = list(map(float, svg_root.getAttribute("viewBox").split(" ")))
+            view_box = Bbox(*viewbox_list)
+        else:
+            view_box = Bbox(24)
 
         primitives = {
             "path": SVGPath,

@@ -16,7 +16,11 @@ utils.set_seed(42)
 
 
 def train(cfg: _Config, model_name, experiment_name="", log_dir="./logs", debug=False, resume=False):
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    device = torch.device(
+        "cuda:0" if torch.cuda.is_available() else 
+        "mps" if torch.backends.mps.is_available() else
+        "cpu"
+    )
 
     print("Parameters")
     cfg.print_params()
@@ -30,7 +34,7 @@ def train(cfg: _Config, model_name, experiment_name="", log_dir="./logs", debug=
 
     if cfg.pretrained_path is not None:
         print(f"Loading pretrained model {cfg.pretrained_path}")
-        utils.load_model(cfg.pretrained_path, model)
+        utils.load_model(cfg.pretrained_path, model, device=device)
 
     stats = Stats(num_steps=cfg.num_steps, num_epochs=cfg.num_epochs, steps_per_epoch=len(dataloader),
                   stats_to_print=cfg.stats_to_print)
@@ -58,7 +62,7 @@ def train(cfg: _Config, model_name, experiment_name="", log_dir="./logs", debug=
     loss_fns = [l.to(device) for l in cfg.make_losses()]
 
     if resume:
-        ckpt_exists = utils.load_ckpt_list(checkpoint_dir, model, None, optimizers, scheduler_lrs, scheduler_warmups, stats, train_vars)
+        ckpt_exists = utils.load_ckpt_list(checkpoint_dir, model, None, optimizers, scheduler_lrs, scheduler_warmups, stats, train_vars, device=device)
 
     if resume and ckpt_exists:
         print(f"Resuming model at epoch {stats.epoch+1}")

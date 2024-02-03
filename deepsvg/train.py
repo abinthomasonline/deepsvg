@@ -145,10 +145,11 @@ if __name__ == "__main__":
     parser.add_argument("--log-dir", type=str, default="./logs")
     parser.add_argument("--debug", action="store_true", default=False)
     parser.add_argument("--resume", action="store_true", default=False)
+    parser.add_argument("--num-gpus", type=int, default=2)
 
     args = parser.parse_args()
 
-    cfg = importlib.import_module(args.config_module).Config()
+    cfg = importlib.import_module(args.config_module).Config(num_gpus=args.num_gpus)
     model_name, experiment_name = args.config_module.split(".")[-2:]
 
     train(cfg, model_name, experiment_name, log_dir=args.log_dir, debug=args.debug, resume=args.resume)

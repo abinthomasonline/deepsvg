@@ -22,3 +22,6 @@ class Config(Config):
         self.batch_size = 60 * num_gpus
 
         self.val_every = 2000
+
+        self.data_dir = "/content/drive/MyDrive/Colab Notebooks/data/deepsvg/dataset/icons_tensor"
+        self.meta_filepath = "/content/drive/MyDrive/Colab Notebooks/data/deepsvg/dataset/icons_meta.csv"

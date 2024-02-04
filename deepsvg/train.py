@@ -72,8 +72,8 @@ def train(cfg: _Config, model_name, experiment_name="", log_dir="./logs", debug=
         single_foward_dataloader = DataLoader(dataset, batch_size=cfg.batch_size // cfg.num_gpus, shuffle=True, drop_last=True,
                                       num_workers=cfg.loader_num_workers, collate_fn=cfg.collate_fn)
         data = next(iter(single_foward_dataloader))
-        model_args, params_dict = [data[arg].to(device) for arg in cfg.model_args], cfg.get_params(0, 0)
-        model(*model_args, params=params_dict)
+        model_args, params_dict = [data[arg].to(device) for arg in cfg.model_args if arg != "image"], cfg.get_params(0, 0)
+        model(*model_args, params=params_dict, image=None if "image" not in cfg.model_args else data["image"].to(device))
 
     model = nn.DataParallel(model)
 
@@ -88,14 +88,15 @@ def train(cfg: _Config, model_name, experiment_name="", log_dir="./logs", debug=
                 return
 
             model.train()
-            model_args = [data[arg].to(device) for arg in cfg.model_args]
+            model_args = [data[arg].to(device) for arg in cfg.model_args if arg != "image"]
+            image = None if "image" not in cfg.model_args else data["image"].to(device)
             labels = data["label"].to(device) if "label" in data else None
             params_dict, weights_dict = cfg.get_params(step, epoch), cfg.get_weights(step, epoch)
 
             for i, (loss_fn, optimizer, scheduler_lr, scheduler_warmup, optimizer_start) in enumerate(zip(loss_fns, optimizers, scheduler_lrs, scheduler_warmups, cfg.optimizer_starts), 1):
                 optimizer.zero_grad()
 
-                output = model(*model_args, params=params_dict)
+                output = model(*model_args, params=params_dict, image=image)
                 loss_dict = loss_fn(output, labels, weights=weights_dict)
 
                 if step >= optimizer_start:

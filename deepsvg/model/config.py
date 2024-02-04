@@ -44,6 +44,8 @@ class _DefaultConfig:
 
         self.num_groups_proposal = self.max_num_groups  # Number of predicted paths, default: N_P
 
+        self.img_to_svg = True          # Image-to-SVG mode 
+
     def get_model_args(self):
         model_args = []
 
@@ -56,6 +58,9 @@ class _DefaultConfig:
 
         if self.label_condition:
             model_args.append("label")
+
+        if self.img_to_svg:
+            model_args.append("image")
 
         return model_args
 

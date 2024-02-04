@@ -22,3 +22,4 @@ umap-learn
 umap-learn[plot]
 shapely
 kivy
+vit-pytorch

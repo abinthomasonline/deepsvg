@@ -169,27 +169,28 @@ class SVG:
         svg = SVG([SVGPath.from_tensor(t, allow_empty=allow_empty) for t in tensors], viewbox=viewbox)
         return svg
 
-    def save_svg(self, file_path):
+    def save_svg(self, file_path, height=None, width=None):
         with open(file_path, "w") as f:
-            f.write(self.to_str())
+            f.write(self.to_str(height=height, width=width))
 
-    def save_png(self, file_path):
-        cairosvg.svg2png(bytestring=self.to_str(), write_to=file_path)
+    def save_png(self, file_path, height=None, width=None):
+        cairosvg.svg2png(bytestring=self.to_str(height=height, width=width), write_to=file_path)
 
     def draw(self, fill=False, file_path=None, do_display=True, return_png=False,
              with_points=False, with_handles=False, with_bboxes=False, with_markers=False, color_firstlast=False,
-             with_moves=True):
+             with_moves=True, height=None, width=None):
         if file_path is not None:
             _, file_extension = os.path.splitext(file_path)
             if file_extension == ".svg":
-                self.save_svg(file_path)
+                self.save_svg(file_path, height=height, width=width)
             elif file_extension == ".png":
-                self.save_png(file_path)
+                self.save_png(file_path, height=height, width=width)
             else:
                 raise ValueError(f"Unsupported file_path extension {file_extension}")
 
         svg_str = self.to_str(fill=fill, with_points=with_points, with_handles=with_handles, with_bboxes=with_bboxes,
-                              with_markers=with_markers, color_firstlast=color_firstlast, with_moves=with_moves)
+                              with_markers=with_markers, color_firstlast=color_firstlast, with_moves=with_moves, 
+                              height=height, width=width)
 
         if do_display:
             ipd.display(ipd.SVG(svg_str))
@@ -230,11 +231,13 @@ class SVG:
                 '</defs>')
 
     def to_str(self, fill=False, with_points=False, with_handles=False, with_bboxes=False, with_markers=False,
-               color_firstlast=False, with_moves=True) -> str:
+               color_firstlast=False, with_moves=True, height=None, width=None) -> str:
+        height = height or 200
+        width = width or 200
         viz_elements = self._get_viz_elements(with_points, with_handles, with_bboxes, color_firstlast, with_moves)
         newline = "\n"
         return (
-            f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="{self.viewbox.to_str()}" height="200px" width="200px">'
+            f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="{self.viewbox.to_str()}" height="{height}px" width="{width}px">'
             f'{self._markers() if with_markers else ""}'
             f'{newline.join(svg_path_group.to_str(fill=fill, with_markers=with_markers) for svg_path_group in [*self.svg_path_groups, *viz_elements])}'
             '</svg>')

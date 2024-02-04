@@ -11,6 +11,7 @@ from .utils import (_get_padding_mask, _get_key_padding_mask, _get_group_mask, _
 
 from torch.nn.utils.rnn import pad_packed_sequence, pack_padded_sequence
 from scipy.optimize import linear_sum_assignment
+from vit_pytorch import ViT
 
 
 class SVGEmbedding(nn.Module):
@@ -292,7 +293,18 @@ class SVGTransformer(nn.Module):
         self.cfg = cfg
         self.args_dim = 2 * cfg.args_dim if cfg.rel_targets else cfg.args_dim + 1
 
-        if self.cfg.encode_stages > 0:
+        if self.cfg.img_to_svg:
+            self.vit = ViT(
+                image_size=256,
+                patch_size=32,
+                num_classes=self.cfg.dim_z,
+                dim=1024,
+                depth=6,
+                heads=16,
+                mlp_dim=2048,
+                channels=1,
+            )
+        elif self.cfg.encode_stages > 0:
 
             self.encoder = Encoder(cfg)
 
@@ -351,20 +363,25 @@ class SVGTransformer(nn.Module):
 
     def forward(self, commands_enc, args_enc, commands_dec, args_dec, label=None,
                 z=None, hierarch_logits=None,
-                return_tgt=True, params=None, encode_mode=False, return_hierarch=False):
+                return_tgt=True, params=None, encode_mode=False, return_hierarch=False, 
+                image=None):
         commands_enc, args_enc = _make_seq_first(commands_enc, args_enc)  # Possibly None, None
         commands_dec_, args_dec_ = _make_seq_first(commands_dec, args_dec)
 
         if z is None:
-            z = self.encoder(commands_enc, args_enc, label)
-
-            if self.cfg.use_resnet:
-                z = self.resnet(z)
-
-            if self.cfg.use_vae:
-                z, mu, logsigma = self.vae(z)
+            if self.cfg.img_to_svg:
+                z = self.vit(image)
+                z = z.unsqueeze(0).unsqueeze(0)
             else:
-                z = self.bottleneck(z)
+                z = self.encoder(commands_enc, args_enc, label)
+
+                if self.cfg.use_resnet:
+                    z = self.resnet(z)
+
+                if self.cfg.use_vae:
+                    z, mu, logsigma = self.vae(z)
+                else:
+                    z = self.bottleneck(z)
         else:
             z = _make_seq_first(z)
 
@@ -413,22 +430,22 @@ class SVGTransformer(nn.Module):
 
     def greedy_sample(self, commands_enc=None, args_enc=None, commands_dec=None, args_dec=None, label=None,
                       z=None, hierarch_logits=None,
-                      concat_groups=True, temperature=0.0001):
+                      concat_groups=True, temperature=0.0001, image=None):
         if self.cfg.pred_mode == "one_shot":
-            res = self.forward(commands_enc, args_enc, commands_dec, args_dec, label=label, z=z, hierarch_logits=hierarch_logits, return_tgt=False)
+            res = self.forward(commands_enc, args_enc, commands_dec, args_dec, label=label, z=z, hierarch_logits=hierarch_logits, return_tgt=False, image=image)
             commands_y, args_y = _sample_categorical(temperature, res["command_logits"], res["args_logits"])
             args_y -= 1  # shift due to -1 PAD_VAL
             visibility_y = _threshold_sample(res["visibility_logits"], threshold=0.7).bool().squeeze(-1) if self.cfg.decode_stages == 2 else None
             commands_y, args_y = self._make_valid(commands_y, args_y, visibility_y)
         else:
             if z is None:
-                z = self.forward(commands_enc, args_enc, None, None, label=label, encode_mode=True)
+                z = self.forward(commands_enc, args_enc, None, None, label=label, encode_mode=True, image=image)
 
             PAD_VAL = -1
             commands_y, args_y = z.new_zeros(1, 1, 1).fill_(SVGTensor.COMMANDS_SIMPLIFIED.index("SOS")).long(), z.new_ones(1, 1, 1, self.cfg.n_args).fill_(PAD_VAL).long()
 
             for i in range(self.cfg.max_total_len):
-                res = self.forward(None, None, commands_y, args_y, label=label, z=z, hierarch_logits=hierarch_logits, return_tgt=False)
+                res = self.forward(None, None, commands_y, args_y, label=label, z=z, hierarch_logits=hierarch_logits, return_tgt=False, image=image)
                 commands_new_y, args_new_y = _sample_categorical(temperature, res["command_logits"], res["args_logits"])
                 args_new_y -= 1  # shift due to -1 PAD_VAL
                 _, args_new_y = self._make_valid(commands_new_y, args_new_y)

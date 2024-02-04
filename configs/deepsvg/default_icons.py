@@ -81,8 +81,9 @@ class Config(_Config):
         
         # Reconstruction
         for i, data in enumerate(train_vars.x_inputs_train):
-            model_args = batchify((data[key] for key in self.model_args), device)
-            commands_y, args_y = model.module.greedy_sample(*model_args)
+            model_args = batchify((data[key] for key in self.model_args if key != "image"), device)
+            commands_y, args_y = model.module.greedy_sample(
+                *model_args, image=None if "image" not in self.model_args else next(batchify([data["image"]], device)))
             tensor_pred = SVGTensor.from_cmd_args(commands_y[0].cpu(), args_y[0].cpu())
 
             try:

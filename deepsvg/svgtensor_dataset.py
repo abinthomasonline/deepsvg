@@ -1,7 +1,7 @@
 from deepsvg.config import _Config
 from deepsvg.difflib.tensor import SVGTensor
 from deepsvg.svglib.svg import SVG
-from deepsvg.svglib.geom import Point
+from deepsvg.svglib.geom import Bbox, Point
 
 import math
 import torch
@@ -11,6 +11,8 @@ from typing import List, Union
 import pandas as pd
 import os
 import pickle
+from PIL import Image
+import torchvision.transforms as transforms
 Num = Union[int, float]
 
 
@@ -167,6 +169,11 @@ class SVGTensorDataset(torch.utils.data.Dataset):
         if model_args is None:
             model_args = self.model_args
 
+        if "image" in model_args:
+            svg = SVG.from_tensors(t_sep, viewbox=Bbox(256))
+            for _svg_path_group, _filling in zip(svg.svg_path_groups, fillings):
+                _svg_path_group.path.filling = _filling
+
         pad_len = max(self.MAX_NUM_GROUPS - len(t_sep), 0)
 
         t_sep.extend([torch.empty(0, 14)] * pad_len)
@@ -201,6 +208,13 @@ class SVGTensorDataset(torch.utils.data.Dataset):
 
         if "label" in model_args:
             res["label"] = label
+
+        if "image" in model_args:
+            image = svg.draw(do_display=False, return_png=True, height=256, width=256)
+            white_bg = Image.new("RGBA", image.size, "WHITE")
+            white_bg.paste(image, (0, 0), image)
+            image = white_bg.convert("L")
+            res["image"] = transforms.PILToTensor()(image)
 
         return res
 

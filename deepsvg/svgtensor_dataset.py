@@ -214,7 +214,7 @@ class SVGTensorDataset(torch.utils.data.Dataset):
             white_bg = Image.new("RGBA", image.size, "WHITE")
             white_bg.paste(image, (0, 0), image)
             image = white_bg.convert("L")
-            res["image"] = transforms.PILToTensor()(image)
+            res["image"] = transforms.ToTensor()(image)
 
         return res
 

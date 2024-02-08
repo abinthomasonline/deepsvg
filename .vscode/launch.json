@@ -1,0 +1,27 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "dataset.deprocess",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "dataset.deprocess"
+        },
+        {
+            "name": "deepsvg.train",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "deepsvg.train",
+            "justMyCode": false,
+            "args": [
+                "--config-module",
+                "configs.deepsvg.hierarchical_ordered",
+                "--num-gpus",
+                "1",
+            ]
+        }
+    ]
+}
